@@ -1,5 +1,7 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/wokwi_test/badge.svg) ![](../../workflows/fpga/badge.svg)
 
+This is an edit 4
+
 # Tiny Tapeout Wokwi Project Template
 
 - [Read the documentation for project](docs/info.md)
@@ -25,6 +27,8 @@ The GitHub action will automatically fetch the digital netlist from Wokwi and bu
 This is an edit 2
 
 ## Resources
+
+This is an edit 3
 
 - [FAQ](https://tinytapeout.com/faq/)
 - [Digital design lessons](https://tinytapeout.com/digital_design/)
