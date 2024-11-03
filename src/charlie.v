@@ -1,3 +1,6 @@
+//`ifndef CHARLIE_V  // Check if MY_MODULE_V is not defined
+//`define CHARLIE_V  // Define MY_MODULE_V to prevent re-inclusion
+//seems like simulation double-imports, so just skip second import
 
 module charlie (
   input  wire       clk,      // clock
@@ -17,7 +20,7 @@ wire [2:0] row_index;
   reg [7:0] uio_out_reg;
   reg [7:0] uio_oe_reg;
   
-  assign uio_out=uio_out_reg;
+  assign uio_out=uio_out_reg;//8'h5C;//
   assign uio_oe=uio_oe_reg;
   
   assign memory[0] = memory_frame_buffer[7:0];
@@ -46,9 +49,11 @@ wire [2:0] row_index;
       uio_oe_reg[row_index]<=is_on;
       uio_oe_reg[col_index]<=is_on;
       
-      uio_out_reg[row_index]<=1;
-      uio_out_reg[col_index]<=0;
+      uio_out_reg[row_index]<=1'b1;
+      uio_out_reg[col_index]<=1'b0;
    // end
   end
   
 endmodule
+
+//`endif

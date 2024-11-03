@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2024 Your Name
+ * Copyright (c) 2024 ParallelLogic
  * SPDX-License-Identifier: Apache-2.0
  */
 
 `default_nettype none
-`include "charlie.v"
-`include "spi_slave.v"
+//`include "charlie.v"
+//`include "spi_slave.v"
 
 module tt_um_parallellogic_top (
     input  wire [7:0] ui_in,    // Dedicated inputs
@@ -46,7 +46,7 @@ module tt_um_parallellogic_top (
     end
   end
   
-  charlie cha(
+  charlie charlie_0(
   clk,      // clock
     memory_frame_buffer,
     frame_done_index,
