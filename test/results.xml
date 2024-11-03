@@ -1,6 +1,0 @@
-<testsuites name="results">
-  <testsuite name="all" package="all">
-    <property name="random_seed" value="1730591394" />
-    <testcase name="test_project" classname="test" file="/mnt/d/Projects/Hackaday2024/tiny_tapeout/TinyTapeoutLogic2024A/test/test.py" lineno="9" time="0.01935100555419922" sim_time_ns="100000.001" ratio_time="5167690.1605921835" />
-  </testsuite>
-</testsuites>
