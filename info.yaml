@@ -38,7 +38,7 @@ pinout:
   uo[3]: ""
   uo[4]: ""
   uo[5]: ""
-  uo[6]: ""
+  uo[6]: "FSYNC"
   uo[7]: "MISO"
 
   # Bidirectional pins
