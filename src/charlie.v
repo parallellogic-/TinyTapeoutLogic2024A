@@ -6,6 +6,7 @@ module charlie (
   input  wire       clk,      // clock
   input wire [63:0] memory_frame_buffer,
   input wire [5:0] frame_done_index,
+    input  wire       rst_n,     // reset_n - low to reset
   output wire [7:0] uio_out,  // IOs: Output path
   output wire [7:0] uio_oe,   // IOs: Enable path (active high: 0=input, 1=output)
   output wire is_frame_done
@@ -42,7 +43,11 @@ wire [2:0] row_index;
   
   always @(posedge clk)
   begin
-    charlie_index <= charlie_index+1;
+    if(!rst_n) begin
+		charlie_index <= 6'b0;
+	end else begin
+		charlie_index <= charlie_index+1;
+	end
     uio_oe_reg<=8'b0;
     uio_out_reg<=8'b0;
     //if(!is_diagonal && is_on) begin

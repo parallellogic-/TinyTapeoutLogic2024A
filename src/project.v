@@ -50,6 +50,7 @@ module tt_um_parallellogic_top (
   clk,      // clock
     memory_frame_buffer,
     frame_done_index,
+	rst_n,
     uio_out,  // IOs: Output path
     uio_oe,
     is_frame_done
