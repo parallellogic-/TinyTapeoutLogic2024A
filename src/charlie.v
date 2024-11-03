@@ -4,15 +4,15 @@
 
 module charlie (
   input  wire       clk,      // clock
+  input wire[5:0] charlie_index,
   input wire [63:0] memory_frame_buffer,
-  input wire [5:0] frame_done_index,
-    input  wire       rst_n,     // reset_n - low to reset
+    //input  wire       rst_n,     // reset_n - low to reset
+	//input wire is_enabled,
   output wire [7:0] uio_out,  // IOs: Output path
-  output wire [7:0] uio_oe,   // IOs: Enable path (active high: 0=input, 1=output)
-  output wire is_frame_done
+  output wire [7:0] uio_oe   // IOs: Enable path (active high: 0=input, 1=output)
 );
   
-reg[5:0] charlie_index;
+//reg[5:0] charlie_index;
 wire [2:0] row_index;
   wire [2:0] col_index;
   //wire is_diagonal;
@@ -36,18 +36,16 @@ wire [2:0] row_index;
   assign col_index=charlie_index[2:0];
   assign row_index=charlie_index[5:3];
   
-  assign is_frame_done=frame_done_index==charlie_index;
-  
   //assign is_diagonal = row_index == col_index;//if on diagonal, do nothing
   assign is_on=memory[row_index][col_index];//fetch state of this LED
   
   always @(posedge clk)
   begin
-    if(!rst_n) begin
-		charlie_index <= 6'b0;
-	end else begin
-		charlie_index <= charlie_index+1;
-	end
+    //if(!rst_n) begin
+	//	charlie_index <= 6'b0;
+	//end else begin
+	//	charlie_index <= charlie_index+1;
+	//end
     uio_oe_reg<=8'b0;
     uio_out_reg<=8'b0;
     //if(!is_diagonal && is_on) begin

@@ -20,28 +20,29 @@ project:
     - "project.v"
     - "spi_slave.v"
     - "charlie.v"
+    - "lfsr_counter.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 pinout:
   # Inputs
-  ui[0]: "ECHO"
-  ui[1]: ""
-  ui[2]: ""
-  ui[3]: ""
-  ui[4]: ""
-  ui[5]: "CS"
-  ui[6]: "SCLK"
-  ui[7]: "MOSI"
+  ui[0]: "SS"
+  ui[1]: "SCLK"
+  ui[2]: "MOSI"
+  ui[3]: "WAVE_IN"
+  ui[4]: "DEBUG_IN_0"
+  ui[5]: "DEBUG_IN_1"
+  ui[6]: "DEBUG_IN_2"
+  ui[7]: "DEBUG_IN_3"
 
   # Outputs
-  uo[0]: "ECHO"
-  uo[1]: "LFSR"
-  uo[2]: ""
-  uo[3]: ""
-  uo[4]: ""
-  uo[5]: ""
-  uo[6]: "FSYNC"
-  uo[7]: "MISO"
+  uo[0]: "MISO"
+  uo[1]: "PWM_CLK"
+  uo[2]: "WAVE_OUT_0"
+  uo[3]: "WAVE_OUT_1"
+  uo[4]: "DEBUG_OUT_0"
+  uo[5]: "DEBUG_OUT_1"
+  uo[6]: "DEBUG_OUT_2"
+  uo[7]: "DEBUG_OUT_3"
 
   # Bidirectional pins
   uio[0]: "MAT0"

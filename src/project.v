@@ -18,47 +18,91 @@ module tt_um_parallellogic_top (
     input  wire       rst_n     // reset_n - low to reset
 );
 
-  parameter MEMORY_COUNT=12;
-  reg [7:0] memory [0:(MEMORY_COUNT-1)];
-  wire is_frame_done;
-  wire [5:0] frame_done_index;
+  parameter RW_MEMORY_COUNT=12;
+  parameter RO_MEMORY_COUNT=1;
+  wire [7:0] rw_data [0:(RW_MEMORY_COUNT-1)];
+  reg [7:0] ro_data [0:(RO_MEMORY_COUNT-1)];
   wire [(8*8-1):0] memory_frame_buffer;//flatten to work with yosys expectations of 1D lists
+  wire [31:0] counter;
+  wire is_lfsr;
+  wire [3:0] tap_index;
+  wire [3:0] tap_out;
+  wire [RW_MEMORY_COUNT*8-1:0] rw_flat;
+  wire [RO_MEMORY_COUNT*8-1:0] ro_flat;
+  ////wire is_charelieplex_enabled=1'b1;
   
-  assign frame_done_index={memory[5][5],memory[4][4],memory[3][3],memory[2][2],memory[1][1],memory[0][0]};
-  assign memory_frame_buffer={memory[7], memory[6], memory[5], memory[4], memory[3], memory[2], memory[1], memory[0]};
+  assign is_lfsr=0;//TODO clock mode
+  assign tap_index=0;//TODO
   
-  always @(posedge clk)
-  begin
-    if(!rst_n) begin
-      memory[0]<=8'b0;
-      memory[1]<=8'b0;
-      memory[2]<=8'b0;
-      memory[3]<=8'b0;
-      memory[4]<=8'b0;
-      memory[5]<=8'b0;
-      memory[6]<=8'b0;
-      memory[7]<=8'b0;
-      memory[8]<=8'b0;
-      memory[9]<=8'b0;
-      memory[10]<=8'b0;
-      memory[11]<=8'b0;
-     
-    end
-  end
+  assign memory_frame_buffer={rw_data[7], rw_data[6], rw_data[5], rw_data[4], rw_data[3], rw_data[2], rw_data[1], rw_data[0]};
+  //assign rw_flat={rw_data[11],rw_data[10],rw_data[9],rw_data[8],rw_data[7], rw_data[6], rw_data[5], rw_data[4], rw_data[3], rw_data[2], rw_data[1], rw_data[0]};
+  /*assign rw_data[0]=rw_flat[8*0+7-:8];
+  assign rw_data[1]=rw_flat[8*1+7-:8];
+  assign rw_data[2]=rw_flat[8*2+7-:8];
+  assign rw_data[3]=rw_flat[8*3+7-:8];
+  assign rw_data[4]=rw_flat[8*4+7-:8];
+  assign rw_data[5]=rw_flat[8*5+7-:8];
+  assign rw_data[6]=rw_flat[8*6+7-:8];
+  assign rw_data[7]=rw_flat[8*7+7-:8];
+  assign rw_data[8]=rw_flat[8*8+7-:8];
+  assign rw_data[9]=rw_flat[8*9+7-:8];
+  assign rw_data[10]=rw_flat[8*10+7-:8];
+  assign rw_data[11]=rw_flat[8*11+7-:8];*/
+  genvar i;
+	generate
+		for (i = 0; i < RW_MEMORY_COUNT; i = i + 1) begin
+			assign rw_data[i] = rw_flat[8*i + 7 -: 8];
+		end
+		for (i = 0; i < RO_MEMORY_COUNT; i = i + 1) begin
+			assign ro_flat[8*i + 7 -: 8] = ro_data[i];
+		end
+	endgenerate
   
-  charlie charlie_0(
-  clk,      // clock
-    memory_frame_buffer,
-    frame_done_index,
-	rst_n,
-    uio_out,  // IOs: Output path
-    uio_oe,
-    is_frame_done
+  
+    always @(posedge clk) begin
+		if(!rst_n) begin
+			ro_data[0][7:0]<=0;//TODO
+		end else begin
+			ro_data[0][7:0]<=1;//TODO
+		end
+	end
+  
+  lfsr_counter lfsr_counter_0(
+    .clk(clk),         // Clock input
+    .rst_n(rst_n),       // Active-low reset
+    .is_lfsr(is_lfsr),     // Mode control: 1 for LFSR, 0 for counter
+	.tap_index(tap_index),
+    .out(counter),   // 16-bit output
+	.tap_output(tap_out)
   );
   
+  charlie charlie_0(
+  .clk(clk),      // clock
+  .charlie_index(counter[5:0]),
+    .memory_frame_buffer(memory_frame_buffer),
+	//rst_n,
+	//.is_enabled(is_charelieplex_enabled),
+    .uio_out(uio_out),  // IOs: Output path
+    .uio_oe(uio_oe)
+  );
   
-  assign uo_out =8'b0;
-  
-  wire _unused = &{ena, clk, rst_n, 1'b0,uio_in,is_frame_done,ui_in};
+  /*spi_slave #(
+    RW_MEMORY_COUNT,  // Number of read-write registers
+    RO_MEMORY_COUNT   // Number of read-only registers
+)spi_slave_0  (
+    .clk(clk),                  // System clock
+    .rst_n(rst_n),                // Active-low reset
+    .spi_cs(ui_in[0]),                   // SPI chip select (active low)
+    .spi_clk(ui_in[1]),                  // SPI clock
+    .spi_mosi(ui_in[2]),                 // Master-Out Slave-In (data from master)
+    .spi_miso(uo_out[0]),                // Master-In Slave-Out (data to master)
+	.rw_data(rw_flat),
+    .ro_data(ro_flat) // Data for read-only registers
+);*/
+	assign rw_flat=1;
+  assign uo_out[0]=&counter;//TODO
+  assign uo_out[6:1] =0;//TODO
+  assign uo_out[7]=^counter;//TODO
+  wire _unused = &{ena, clk, rst_n, 1'b0,uio_in,ui_in,tap_out,counter,rw_flat,ro_flat};//TODO
 
 endmodule
