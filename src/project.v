@@ -35,19 +35,7 @@ module tt_um_parallellogic_top (
   assign tap_index=0;//TODO
   
   assign memory_frame_buffer={rw_data[7], rw_data[6], rw_data[5], rw_data[4], rw_data[3], rw_data[2], rw_data[1], rw_data[0]};
-  //assign rw_flat={rw_data[11],rw_data[10],rw_data[9],rw_data[8],rw_data[7], rw_data[6], rw_data[5], rw_data[4], rw_data[3], rw_data[2], rw_data[1], rw_data[0]};
-  /*assign rw_data[0]=rw_flat[8*0+7-:8];
-  assign rw_data[1]=rw_flat[8*1+7-:8];
-  assign rw_data[2]=rw_flat[8*2+7-:8];
-  assign rw_data[3]=rw_flat[8*3+7-:8];
-  assign rw_data[4]=rw_flat[8*4+7-:8];
-  assign rw_data[5]=rw_flat[8*5+7-:8];
-  assign rw_data[6]=rw_flat[8*6+7-:8];
-  assign rw_data[7]=rw_flat[8*7+7-:8];
-  assign rw_data[8]=rw_flat[8*8+7-:8];
-  assign rw_data[9]=rw_flat[8*9+7-:8];
-  assign rw_data[10]=rw_flat[8*10+7-:8];
-  assign rw_data[11]=rw_flat[8*11+7-:8];*/
+  
   genvar i;
 	generate
 		for (i = 0; i < RW_MEMORY_COUNT; i = i + 1) begin
@@ -86,7 +74,7 @@ module tt_um_parallellogic_top (
     .uio_oe(uio_oe)
   );
   
-  /*spi_slave #(
+  spi_slave #(
     RW_MEMORY_COUNT,  // Number of read-write registers
     RO_MEMORY_COUNT   // Number of read-only registers
 )spi_slave_0  (
@@ -98,9 +86,9 @@ module tt_um_parallellogic_top (
     .spi_miso(uo_out[0]),                // Master-In Slave-Out (data to master)
 	.rw_data(rw_flat),
     .ro_data(ro_flat) // Data for read-only registers
-);*/
-	assign rw_flat=1;
-  assign uo_out[0]=&counter;//TODO
+);
+	//assign rw_flat=1;
+  //assign uo_out[0]=&counter;//TODO
   assign uo_out[6:1] =0;//TODO
   assign uo_out[7]=^counter;//TODO
   wire _unused = &{ena, clk, rst_n, 1'b0,uio_in,ui_in,tap_out,counter,rw_flat,ro_flat};//TODO

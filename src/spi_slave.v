@@ -16,7 +16,7 @@ module spi_slave #(
 
     always @(posedge clk) begin
 		if(!rst_n) begin
-			rw_data[8*0+7-:8]<=0;
+			/*rw_data[8*0+7-:8]<=0;
 			rw_data[8*1+7-:8]<=0;
 			rw_data[8*2+7-:8]<=0;
 			rw_data[8*3+7-:8]<=0;
@@ -27,9 +27,12 @@ module spi_slave #(
 			rw_data[8*8+7-:8]<=0;
 			rw_data[8*9+7-:8]<=0;
 			rw_data[8*10+7-:8]<=0;
-			rw_data[8*11+7-:8]<=0;
+			rw_data[8*11+7-:8]<=0;*/
+			 for (int i = 0; i < 12; i = i + 1) begin
+				rw_data[8*i +: 8] <= 8'b0; // Reset to 0
+			end
 		end else begin
-			rw_data[8*0+7-:8]<=8'hFF;
+			/*rw_data[8*0+7-:8]<=8'hFF;
 			rw_data[8*1+7-:8]<=8'hFF;
 			rw_data[8*2+7-:8]<=8'hFF;
 			rw_data[8*3+7-:8]<=8'hFF;
@@ -40,12 +43,15 @@ module spi_slave #(
 			rw_data[8*8+7-:8]<=8'hFF;
 			rw_data[8*9+7-:8]<=8'hFF;
 			rw_data[8*10+7-:8]<=8'hFF;
-			rw_data[8*11+7-:8]<=8'hFF;
+			rw_data[8*11+7-:8]<=8'hFF;*/
+			for (int i = 0; i < 12; i = i + 1) begin
+				rw_data[8*i +: 8] <= 8'hFF; // Set to 0xFF
+			end
 		end
 	end
 	
-	assign rw_data=0;
-	assign spi_miso=1;
+	//assign rw_data=0;
+	assign spi_miso=1;//TODO
 	
 	wire _unused = &{clk, rst_n, spi_clk,spi_mosi,spi_cs,ro_data};
 
