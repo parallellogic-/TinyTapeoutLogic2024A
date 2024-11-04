@@ -18,17 +18,17 @@ module tt_um_parallellogic_top (
     input  wire       rst_n     // reset_n - low to reset
 );
 
-  parameter RW_MEMORY_COUNT=12;
-  parameter RO_MEMORY_COUNT=1;
-  wire [7:0] rw_data [0:(RW_MEMORY_COUNT-1)];
-  reg [7:0] ro_data [0:(RO_MEMORY_COUNT-1)];
+  parameter RW_REG_COUNT=12;
+  parameter RO_REG_COUNT=1;
+  wire [7:0] rw_data [0:(RW_REG_COUNT-1)];
+  reg [7:0] ro_data [0:(RO_REG_COUNT-1)];
   wire [(8*8-1):0] memory_frame_buffer;//flatten to work with yosys expectations of 1D lists
   wire [31:0] counter;
   wire is_lfsr;
   wire [3:0] tap_index;
   wire [3:0] tap_out;
-  wire [RW_MEMORY_COUNT*8-1:0] rw_flat;
-  wire [RO_MEMORY_COUNT*8-1:0] ro_flat;
+  wire [RW_REG_COUNT*8-1:0] rw_flat;
+  wire [RO_REG_COUNT*8-1:0] ro_flat;
   ////wire is_charelieplex_enabled=1'b1;
   
   assign is_lfsr=0;//TODO clock mode
@@ -38,10 +38,10 @@ module tt_um_parallellogic_top (
   
   genvar i;
 	generate
-		for (i = 0; i < RW_MEMORY_COUNT; i = i + 1) begin
+		for (i = 0; i < RW_REG_COUNT; i = i + 1) begin
 			assign rw_data[i] = rw_flat[8*i + 7 -: 8];
 		end
-		for (i = 0; i < RO_MEMORY_COUNT; i = i + 1) begin
+		for (i = 0; i < RO_REG_COUNT; i = i + 1) begin
 			assign ro_flat[8*i + 7 -: 8] = ro_data[i];
 		end
 	endgenerate
@@ -75,8 +75,8 @@ module tt_um_parallellogic_top (
   );
   
   spi_slave #(
-    RW_MEMORY_COUNT,  // Number of read-write registers
-    RO_MEMORY_COUNT   // Number of read-only registers
+    RW_REG_COUNT,  // Number of read-write registers
+    RO_REG_COUNT   // Number of read-only registers
 )spi_slave_0  (
     .clk(clk),                  // System clock
     .rst_n(rst_n),                // Active-low reset
@@ -88,7 +88,7 @@ module tt_um_parallellogic_top (
     .ro_data(ro_flat) // Data for read-only registers
 );
 	//assign rw_flat=1;
-  //assign uo_out[0]=&counter;//TODO
+  //assign uo_out[0]=1'b1;//TODO
   assign uo_out[6:1] =0;//TODO
   assign uo_out[7]=^counter;//TODO
   wire _unused = &{ena, clk, rst_n, 1'b0,uio_in,ui_in,tap_out,counter,rw_flat,ro_flat};//TODO

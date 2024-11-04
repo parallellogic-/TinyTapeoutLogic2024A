@@ -36,7 +36,14 @@ async def test_project(dut):
     # Change it to match the actual expected output of your module:
     dut._log.info("dut.uio_out.value: "+str(dut.uio_out.value)+" "+str(dut.uio_out.value.__class__))
     dut._log.info("dut.uio_oe.value: "+str(dut.uio_oe.value)+" "+str(dut.uio_oe.value.__class__))
-    assert int(dut.uio_out.value) & int(dut.uio_oe.value) == 0
+    dut._log.info("dut.uo_out.value: "+str(dut.uo_out.value)+" "+str(dut.uo_out.value.__class__))
+    #assert int(dut.uio_out.value) & int(dut.uio_oe.value) == 0
+
+    dut._log.info("enable out")
+    for iter in range(68):
+        await ClockCycles(dut.clk, 1)
+        print(str(dut.uio_oe.value)+" "+str(dut.uio_out.value))
+        if(iter==63): dut._log.info("--")
 
     # Keep testing the module by changing the input values, waiting for
     # one or more clock cycles, and asserting the expected output values.

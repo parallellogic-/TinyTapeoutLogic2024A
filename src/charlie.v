@@ -2,6 +2,8 @@
 //`define CHARLIE_V  // Define MY_MODULE_V to prevent re-inclusion
 //seems like simulation double-imports, so just skip second import
 
+parameter CHARLIE_ROWS= 8;
+
 module charlie (
   input  wire       clk,      // clock
   input wire[5:0] charlie_index,
@@ -24,14 +26,21 @@ wire [2:0] row_index;
   assign uio_out=uio_out_reg;//8'h5C;//
   assign uio_oe=uio_oe_reg;
   
-  assign memory[0] = memory_frame_buffer[7:0];
+  /*assign memory[0] = memory_frame_buffer[7:0];
   assign memory[1] = memory_frame_buffer[15:8];
   assign memory[2] = memory_frame_buffer[23:16];
   assign memory[3] = memory_frame_buffer[31:24];
   assign memory[4] = memory_frame_buffer[39:32];
   assign memory[5] = memory_frame_buffer[47:40];
   assign memory[6] = memory_frame_buffer[55:48];
-  assign memory[7] = memory_frame_buffer[63:56];
+  assign memory[7] = memory_frame_buffer[63:56];*/
+  
+  genvar i;
+	generate
+		for (i = 0; i < CHARLIE_ROWS; i = i + 1) begin
+			assign memory[i] = memory_frame_buffer[8*i + 7 -: 8];
+		end
+	endgenerate
   
   assign col_index=charlie_index[2:0];
   assign row_index=charlie_index[5:3];
