@@ -7,7 +7,7 @@
 //`include "charlie.v"
 //`include "spi_slave.v"
 
-module tt_um_parallellogic_top (
+module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
     input  wire [7:0] ui_in,    // Dedicated inputs
     output wire [7:0] uo_out,   // Dedicated outputs
     input  wire [7:0] uio_in,   // IOs: Input path
