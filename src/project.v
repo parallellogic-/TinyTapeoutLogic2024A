@@ -29,7 +29,6 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
   wire [3:0] tap_out;
   wire [RW_REG_COUNT*8-1:0] rw_flat;
   wire [RO_REG_COUNT*8-1:0] ro_flat;
-  ////wire is_charelieplex_enabled=1'b1;
   
   assign is_lfsr=0;//TODO clock mode
   assign tap_index=0;//TODO
@@ -51,7 +50,7 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
 		if(!rst_n) begin
 			ro_data[0][7:0]<=0;//TODO
 		end else begin
-			ro_data[0][7:0]<=1;//TODO
+			ro_data[0][7:0]<=8'hC5;//TODO
 		end
 	end
   
@@ -68,8 +67,6 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
   .clk(clk),      // clock
   .charlie_index(counter[5:0]),
     .memory_frame_buffer(memory_frame_buffer),
-	//rst_n,
-	//.is_enabled(is_charelieplex_enabled),
     .uio_out(uio_out),  // IOs: Output path
     .uio_oe(uio_oe)
   );
@@ -89,8 +86,9 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
 );
 	//assign rw_flat=1;
   //assign uo_out[0]=1'b1;//TODO
-  assign uo_out[6:1] =0;//TODO
-  assign uo_out[7]=^counter;//TODO
+  assign uo_out[5:1] =0;//TODO
+  assign uo_out[6]=ui_in[7];//counter[0];
+  assign uo_out[7]=^counter;//TODO //python[0]
   wire _unused = &{ena, clk, rst_n, 1'b0,uio_in,ui_in,tap_out,counter,rw_flat,ro_flat};//TODO
 
 endmodule

@@ -25,7 +25,7 @@ project:
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 pinout:
   # Inputs
-  ui[0]: "SS"
+  ui[0]: "CS"
   ui[1]: "SCLK"
   ui[2]: "MOSI"
   ui[3]: "WAVE_IN"
