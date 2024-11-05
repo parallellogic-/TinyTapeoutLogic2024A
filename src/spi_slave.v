@@ -32,6 +32,9 @@ module spi_slave #(
 	//wire [7:0] next_shift_reg={shift_reg[6:0], spi_mosi};
 	wire [7:0] next_shift_reg={rw_data[REG_SHIFT*8+6-:7], spi_mosi};//shifting master data into slave
 	
+	//wire thing=next_shift_reg[7];
+	//reg [2:0] debug_1;
+	
 	
     // SPI FSM
     always @(posedge clk) begin
@@ -51,18 +54,23 @@ module spi_slave #(
 					if (bit_cnt == 7) begin//done receiving one byte
 						is_mosi <= next_shift_reg[7];  // MSB determines read/write
 						is_data_phase <= 1'b1;
-						if (is_mosi) begin  //mosi write mode
-							rw_data[REG_ADDR*8+7-:8] <= next_shift_reg;//save the address for later so it's clear where to save the data byte to in the register map
+						if (next_shift_reg[7]) begin  //mosi write mode
+							rw_data[REG_ADDR*8+7-:8] <= {1'b0,next_shift_reg[6:0]};//save the address for later so it's clear where to save the data byte to in the register map
+							//debug_1<=2'h0;
 						end else begin //miso read mode
-							if (next_shift_reg < RW_REG_COUNT) begin
-								rw_data[REG_SHIFT*8+7-:8] <= rw_data[next_shift_reg*8+7-:8];
-							end else if (next_shift_reg < RW_REG_COUNT + RO_REG_COUNT) begin
-								rw_data[REG_SHIFT*8+7-:8] <= ro_data[(next_shift_reg - RW_REG_COUNT) * 8 + 7-: 8];
+							if (next_shift_reg[6:0] < RW_REG_COUNT) begin
+								//debug_1<=2'h1;
+								rw_data[REG_SHIFT*8+7-:8] <= rw_data[next_shift_reg[6:0]*8+7-:8];
+							end else if (next_shift_reg[6:0] < RW_REG_COUNT + RO_REG_COUNT) begin
+								//debug_1<=2'h2;
+								rw_data[REG_SHIFT*8+7-:8] <= ro_data[(next_shift_reg[6:0] - RW_REG_COUNT) * 8 + 7-: 8];
 							end else begin
+								//debug_1<=2'h3;
 								rw_data[REG_SHIFT*8+7-:8] <= 8'hFF; // Invalid address for read
 							end
 						end
-					end else begin//in the middle of receiving a byte, store the bit
+					end else begin
+						//in the middle of receiving a byte, store the bit
 						rw_data[REG_SHIFT*8+7-:8] <= next_shift_reg;//MSB first
 					end
 					bit_cnt <= bit_cnt + 1;
