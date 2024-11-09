@@ -3,14 +3,16 @@
 module priority_write #(
     parameter INPUT_COUNT = 4  // Number of input flags and data sets
 ) (
+	input wire clk,
+	input wire rst_n,
     input wire [INPUT_COUNT-1:0] flags,             // Array of flags
     input wire [(INPUT_COUNT*8)-1:0] data_bits,     // Concatenated 8-bit data inputs
     input wire [7:0] data_in,                       // Input to hold previous data_out value
-    output wire [7:0] data_out                      // 8-bit output (wire type)
+    output reg [7:0] data_out                      // 8-bit output (wire type)
 );
 
     // Function to get the highest-priority active data
-    function [7:0] get_priority_data;
+    /*function [7:0] get_priority_data;
         input [INPUT_COUNT-1:0] flags;
         input [(INPUT_COUNT*8)-1:0] data_bits;
         integer i;
@@ -23,9 +25,23 @@ module priority_write #(
                 end
             end
         end
-    endfunction
+    endfunction*/
+	
+	integer i;
+    always @(posedge clk) begin
+		if(!rst_n) begin
+			data_out <= 8'b0;
+		end else begin
+			data_out <= data_in; // Default output if no flag is set
+			for (i = 0; i < INPUT_COUNT; i = i + 1) begin
+				if (flags[i]) begin
+					data_out <= data_bits[(i*8) +: 8]; // Extract and output 8 bits for the first active flag
+				end
+			end
+		end
+    end
 
     // Assign the result of the function to data_out
-    assign data_out = get_priority_data(flags, data_bits);
+    //assign data_out = get_priority_data(flags, data_bits);
 
 endmodule

@@ -40,9 +40,9 @@ async def test_project(dut):
 
     # The following assersion is just an example of how to check the output values.
     # Change it to match the actual expected output of your module:
-    dut._log.info("dut.uio_out.value: "+str(dut.uio_out.value)+" "+str(dut.uio_out.value.__class__))
-    dut._log.info("dut.uio_oe.value: "+str(dut.uio_oe.value)+" "+str(dut.uio_oe.value.__class__))
-    dut._log.info("dut.uo_out.value: "+str(dut.uo_out.value)+" "+str(dut.uo_out.value.__class__))
+    #dut._log.info("dut.uio_out.value: "+str(dut.uio_out.value)+" "+str(dut.uio_out.value.__class__))
+    #dut._log.info("dut.uio_oe.value: "+str(dut.uio_oe.value)+" "+str(dut.uio_oe.value.__class__))
+    #dut._log.info("dut.uo_out.value: "+str(dut.uo_out.value)+" "+str(dut.uo_out.value.__class__))
     #assert int(dut.uio_out.value) & int(dut.uio_oe.value) == 0
 
     #dut._log.info("enable out")
@@ -51,37 +51,39 @@ async def test_project(dut):
     #    dut._log.info(str(dut.uio_oe.value)+" "+str(dut.uio_out.value))
     #    if(iter==63): dut._log.info("--")
         
-    dut._log.info("dut.uo_out")
-    for iter in range(10):
-        await asic_sleep(dut,1)#await ClockCycles(dut.clk, 1)
-        #print(format(int(dut.uo_out.value), '08b'))
-    dut._log.info("dut.ui_in.value: "+format(int(dut.ui_in.value), '08b'))
-    await asic_sleep(dut,1)#await ClockCycles(dut.clk, 1)
-    dut._log.info("dut.ui_in.value: "+format(int(dut.ui_in.value), '08b'))
-    set_io(dut,"cs",1)
-    #dut.ui_in.value = 1;
-    dut._log.info("cs=1")
-    dut._log.info("dut.ui_in.value: "+format(int(dut.ui_in.value), '08b'))
-    await asic_sleep(dut,1)#await ClockCycles(dut.clk, 1)
-    dut._log.info("dut.ui_in.value: "+format(int(dut.ui_in.value), '08b'))
-    set_io(dut,"cs",0)
-    dut._log.info("cs=0")
-    dut._log.info("dut.ui_in.value: "+format(int(dut.ui_in.value), '08b'))
-    await asic_sleep(dut,1)#await ClockCycles(dut.clk, 1)
-    dut._log.info("dut.ui_in.value: "+format(int(dut.ui_in.value), '08b'))
-    for iter in range(10):
-        await asic_sleep(dut,1)#await ClockCycles(dut.clk, 1)
-        #print(format(int(dut.uo_out.value), '08b'))
+    # dut._log.info("dut.uo_out")
+    # for iter in range(10):
+        # await asic_sleep(dut,1)#await ClockCycles(dut.clk, 1)
+        # #print(format(int(dut.uo_out.value), '08b'))
+    # dut._log.info("dut.ui_in.value: "+format(int(dut.ui_in.value), '08b'))
+    # await asic_sleep(dut,1)#await ClockCycles(dut.clk, 1)
+    # dut._log.info("dut.ui_in.value: "+format(int(dut.ui_in.value), '08b'))
+    # set_io(dut,"cs",1)
+    # #dut.ui_in.value = 1;
+    # dut._log.info("cs=1")
+    # dut._log.info("dut.ui_in.value: "+format(int(dut.ui_in.value), '08b'))
+    # await asic_sleep(dut,1)#await ClockCycles(dut.clk, 1)
+    # dut._log.info("dut.ui_in.value: "+format(int(dut.ui_in.value), '08b'))
+    # set_io(dut,"cs",0)
+    # dut._log.info("cs=0")
+    # dut._log.info("dut.ui_in.value: "+format(int(dut.ui_in.value), '08b'))
+    # await asic_sleep(dut,1)#await ClockCycles(dut.clk, 1)
+    # dut._log.info("dut.ui_in.value: "+format(int(dut.ui_in.value), '08b'))
+    # for iter in range(10):
+        # await asic_sleep(dut,1)#await ClockCycles(dut.clk, 1)
+        # #print(format(int(dut.uo_out.value), '08b'))
         
-    for out_value in []:#[0x5E,0x00,0x00,0xFF,0x00,0x00,0x00,0xFF,0xFF,0x00,0x00,0x00,0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80,0xC5,0x5C,0xF0,0x1D,0xAB,0x1E]:
+    for out_value in [0x5E,0x00,0x00,0xFF,0x00,0x00,0x00,0xFF,0xFF,0x00,0x00,0x00,0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80,0xC5,0x5C,0xF0,0x1D,0xAB,0x1E]:
         reg_addr=0x00
         await exchange_spi_byte(dut,reg_addr,out_value,1)
         #dut._log.info("write: "+str(hex(out_value)))
         spi_readback = await exchange_spi_byte(dut,reg_addr,0x00,0)
         #dut._log.info("spi_readback: "+str(hex(spi_readback)))
-        dut._log.info("loopback reg "+str(hex(reg_addr))+": "+str(hex(out_value))+" "+str(hex(spi_readback))+("\tPASS" if out_value==spi_readback else "\tFAIL"))
+        is_pass=out_value==spi_readback
+        dut._log.info("loopback reg "+str(hex(reg_addr))+": write: "+str(hex(out_value))+" read: "+str(hex(spi_readback))+("\tPASS" if is_pass else "\tFAIL"))
+        assert is_pass
     
-    for reg_addr in []:#range(24):
+    for reg_addr in range(24):
         out_value=0x1E+reg_addr
         await exchange_spi_byte(dut,reg_addr,out_value,1)
         spi_readback = await exchange_spi_byte(dut,reg_addr,0x00,0)
@@ -93,6 +95,21 @@ async def test_project(dut):
     #await exchange_spi_byte(dut,21,0x83,1)
     await set_print_charlie(dut,2,0)
         
+    asic_in_state=0;
+    dut._log.info("Reset")
+    dut.ena.value = 1
+    dut.ui_in.value = 0
+    dut.uio_in.value = 0
+    dut.rst_n.value = 0
+    await asic_sleep(dut,10)#await ClockCycles(dut.clk, 10)
+    dut.rst_n.value = 1
+    set_io(dut,"cs",1)#cs, active low, inactive high
+    set_io(dut,"spi_clk",0)#MODE 0
+    
+    await set_print_charlie(dut,2,0)
+    
+        
+        
     # Keep testing the module by changing the input values, waiting for
     # one or more clock cycles, and asserting the expected output values.
 
@@ -103,6 +120,7 @@ def get_bit(value,index):
 async def set_print_charlie(dut,frame_index,is_mirror):
     await exchange_spi_byte(dut,19,frame_index|(is_mirror<<2),1)
     charlie=await get_charlie(dut)
+    dut._log.info("Frame %d:"%frame_index)
     print_charlie(dut,charlie,is_mirror)
 
 async def get_charlie(dut):
@@ -126,7 +144,8 @@ def get_charlie_bi_en_bit(dut,is_row):
     return -1
 
 def print_charlie(dut,charlie,is_mirror=False):
-    dut._log.info(" 76543210 ")
+    if(is_mirror): dut._log.info(" 01234567 ")
+    else: dut._log.info(" 76543210 ")
     dut._log.info("+"+"-"*8+"+")
     for row in range(8):
         line=""
@@ -143,7 +162,8 @@ def print_charlie(dut,charlie,is_mirror=False):
         line="|"+line+"|"+str(row)
         dut._log.info(line)
     dut._log.info("+"+"-"*8+"+")
-    dut._log.info(" 76543210 ")
+    if(is_mirror): dut._log.info(" 01234567 ")
+    else: dut._log.info(" 76543210 ")
 
 #CPHA=0
 async def exchange_spi_byte(dut,address,mosi_value,is_write):

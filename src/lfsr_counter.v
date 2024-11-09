@@ -4,19 +4,19 @@ module lfsr_counter (
     input wire clk,           // Clock input
     input wire rst_n,         // Active-low reset
     input wire is_lfsr,       // Mode control: 1 for LFSR, 0 for counter
-    input wire [3:0] tap_index,       // Mode control: 1 for LFSR, 0 for counter
-    output reg [31:0] out,     // 32-bit output
-    output wire [3:0] tap_output     // 32-bit output
+    //input wire [3:0] tap_index,       // Mode control: 1 for LFSR, 0 for counter
+    output reg [31:0] out//,     // 32-bit output
+    //output wire [3:0] tap_output     // 32-bit output
 );
 
     // Polynomial: x^32 + x^22 + x^2 + x + 1 (0x80200003)
     wire feedback = out[31] ^ out[21] ^ out[1] ^ out[0];
-	assign tap_output = out[tap_index+3-:4];
+	//assign tap_output = out[tap_index+3-:4];
 
     always @(posedge clk) begin
         if (!rst_n) begin
             // Reset to all 1's on active-low reset
-            out <= 32'hFFFFFFFF;
+            out <= is_lfsr?32'hFFFFFFFF:32'h0;
         end else begin
             if (is_lfsr) begin
                 // LFSR mode: shift and apply feedback

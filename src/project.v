@@ -24,14 +24,50 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
   wire [7:0] ro_data [0:(RO_REG_COUNT-1)];
   wire [(8*24-1):0] memory_frame_buffer;//flatten to work with yosys expectations of 1D lists
   wire [31:0] counter;
-  wire is_lfsr;
-  wire [3:0] tap_index;
-  wire [3:0] tap_out;
+  //wire is_lfsr;
+  //wire [3:0] tap_index;
+  //wire [3:0] tap_out;
   wire [RW_REG_COUNT*8-1:0] rw_flat;
   wire [RO_REG_COUNT*8-1:0] ro_flat;
   
-  assign is_lfsr=0;//TODO clock mode
-  assign tap_index=0;//TODO
+  //inputs
+  wire mosi=ui_in[2];
+  wire sclk=ui_in[1];
+  wire cs=ui_in[0];
+  wire is_trigger=ui_in[3];
+  
+  //register map
+  wire is_counter_reset=rw_data[16][7];
+  wire is_lfsr=rw_data[16][6];
+  wire is_clk_div_bypass=rw_data[16][5];
+  wire [4:0] clk_tap_index=rw_data[16][4:0];
+  wire [1:0] mega_mux_index=rw_data[19][7:6];
+  wire [1:0] bi_frame_index=rw_data[19][1:0];
+  wire is_bi_mirror=rw_data[19][2];
+  wire [3:0] sig_gen_out=4'b0;//TODO
+  wire is_analyzer_lock=1'b0;//TODO
+  wire is_analyzer_run=1'b0;//TODO
+  wire is_sig_gen_run=1'b0;//TODO
+  
+  wire [4:0] spi_address;
+  wire [7:0] spi_data;
+  wire is_spi_write;
+  wire [RW_REG_COUNT-1:0] spi_write_flag=1'b1<<spi_address;
+  
+      genvar i;  // Generate variable for the loop
+    generate
+        for (i = 0; i < RW_REG_COUNT; i = i + 1) begin// : module_instances
+            // Instantiate the module here
+            priority_write #(1) this_priority_write (
+				.clk(clk),
+				.rst_n(rst_n),
+                .flags({spi_write_flag[i]&is_spi_write}),//flag from each module requesting a write
+                .data_bits({spi_data}),//byte from the module requesting to be written
+                .data_in(rw_data[i]),//old value from register
+                .data_out(rw_data[i])//new value to register
+            );
+        end
+    endgenerate
   
   //assign memory_frame_buffer={rw_data[7], rw_data[6], rw_data[5], rw_data[4], rw_data[3], rw_data[2], rw_data[1], rw_data[0]};
   //flatten 2d list to 1d
@@ -44,13 +80,14 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
             assign memory_frame_buffer[((i+RW_REG_COUNT)*8) +: 8] = ro_data[i];
         end
     endgenerate*/
-	assign memory_frame_buffer={ro_flat,rw_flat};
+	assign memory_frame_buffer={ro_flat,rw_flat};//MSbit to LSbit
   
   
-  genvar i;
+  //genvar i;
 	generate
 		for (i = 0; i < RW_REG_COUNT; i = i + 1) begin
-			assign rw_data[i] = rw_flat[8*i + 7 -: 8];
+			//assign rw_data[i] = rw_flat[8*i + 7 -: 8];
+			assign rw_flat[8*i + 7 -: 8] = rw_data[i];
 		end
 		for (i = 0; i < RO_REG_COUNT; i = i + 1) begin
 			assign ro_flat[8*i + 7 -: 8] = ro_data[i];
@@ -69,18 +106,18 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
   
   lfsr_counter lfsr_counter_0(
     .clk(clk),         // Clock input
-    .rst_n(rst_n),       // Active-low reset
+    .rst_n(rst_n&!is_counter_reset),       // Active-low reset
     .is_lfsr(is_lfsr),     // Mode control: 1 for LFSR, 0 for counter
-	.tap_index(tap_index),
-    .out(counter),   // 16-bit output
-	.tap_output(tap_out)
+	//.tap_index(tap_index),
+    .out(counter)//,   // 16-bit output
+	//.tap_output(tap_out)
   );
   
   charlie charlie_0(
   .clk(clk),      // clock
   .charlie_index(counter[5:0]),
-  .frame_index(rw_data[19][1:0]),//TODO
-  .is_mirror(rw_data[19][2]),
+  .frame_index(bi_frame_index),
+  .is_mirror(is_bi_mirror),
     .memory_frame_buffer(memory_frame_buffer),
     .uio_out(uio_out),  // IOs: Output path
     .uio_oe(uio_oe)
@@ -92,18 +129,29 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
 )spi_slave_0  (
     .clk(clk),                  // System clock
     .rst_n(rst_n),                // Active-low reset
-    .spi_cs(ui_in[0]),                   // SPI chip select (active low)
-    .spi_clk(ui_in[1]),                  // SPI clock
-    .spi_mosi(ui_in[2]),                 // Master-Out Slave-In (data from master)
+    .spi_cs(cs),                   // SPI chip select (active low)
+    .spi_clk(sclk),                  // SPI clock
+    .spi_mosi(mosi),                 // Master-Out Slave-In (data from master)
     .spi_miso(uo_out[7]),                // Master-In Slave-Out (data to master)
 	.rw_data(rw_flat),
-    .ro_data(ro_flat) // Data for read-only registers
+    .ro_data(ro_flat), // Data for read-only registers
+	.spi_address(spi_address),				//address of where to write data to
+	.spi_data(spi_data),					//data byte ready for writing into memory
+	.is_spi_write(is_spi_write)
 );
+
+	wire [4*7-1:0] mega_mux={
+							is_clk_div_bypass?clk:counter[clk_tap_index],counter[clk_tap_index+8],sig_gen_out,1'b0,
+							rw_data[{1'b0,ui_in[7:4]}][6:0],//2 decode
+							is_clk_div_bypass?clk:counter[clk_tap_index],counter[clk_tap_index+8],sig_gen_out[0],1'b1,is_analyzer_lock,is_analyzer_run,is_sig_gen_run,//1 siggen
+							ui_in[7:4],is_trigger,mosi,sclk//0 echo
+							};
+	assign uo_out[6:0]=mega_mux[(mega_mux_index*7)+:7];//8th bit is reserved for miso
 	//assign rw_flat=1;
   //assign uo_out[0]=1'b1;//TODO
-  assign uo_out[5:1] =0;//TODO
-  assign uo_out[6]=ui_in[7];//counter[0];
-  assign uo_out[0]=^counter;//TODO //python[0]
-  wire _unused = &{ena, clk, rst_n, 1'b0,uio_in,ui_in,tap_out,counter,rw_flat,ro_flat};//TODO
+  //assign uo_out[5:1] =0;//TODO
+  //assign uo_out[6]=ui_in[7];//counter[0];
+  //assign uo_out[0]=^counter;//TODO //python[0]
+  wire _unused = &{ena, clk, rst_n, 1'b0,uio_in,ui_in,rw_flat,ro_flat};//TODO
 
 endmodule
