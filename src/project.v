@@ -142,8 +142,8 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
 
 	wire [4*7-1:0] mega_mux={
 							is_clk_div_bypass?clk:counter[clk_tap_index],counter[clk_tap_index+8],sig_gen_out,1'b0,
-							rw_data[{1'b0,ui_in[7:4]}][6:0],//2 decode
-							is_clk_div_bypass?clk:counter[clk_tap_index],counter[clk_tap_index+8],sig_gen_out[0],1'b1,is_analyzer_lock,is_analyzer_run,is_sig_gen_run,//1 siggen
+							is_clk_div_bypass?clk:counter[clk_tap_index],counter[clk_tap_index+8],sig_gen_out[0],1'b1,is_analyzer_lock,is_analyzer_run,is_sig_gen_run,//2 siggen
+							rw_data[{1'b0,ui_in[7:4]}][6:0],//1 decode
 							ui_in[7:4],is_trigger,mosi,sclk//0 echo
 							};
 	assign uo_out[6:0]=mega_mux[(mega_mux_index*7)+:7];//8th bit is reserved for miso
