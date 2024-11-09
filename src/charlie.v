@@ -2,12 +2,15 @@
 //`define CHARLIE_V  // Define MY_MODULE_V to prevent re-inclusion
 //seems like simulation double-imports, so just skip second import
 
-parameter CHARLIE_ROWS= 8;
+parameter FRAME_BUFFER_COUNT= 3;
+parameter CHARLIE_ROWS= 8*FRAME_BUFFER_COUNT;
 
 module charlie (
   input  wire       clk,      // clock
   input wire[5:0] charlie_index,
-  input wire [63:0] memory_frame_buffer,
+  input wire[1:0] frame_index,
+  input wire [CHARLIE_ROWS*8-1:0] memory_frame_buffer,
+  input wire is_mirror,//mirror left/right
     //input  wire       rst_n,     // reset_n - low to reset
 	//input wire is_enabled,
   output wire [7:0] uio_out,  // IOs: Output path
@@ -19,26 +22,17 @@ wire [2:0] row_index;
   wire [2:0] col_index;
   //wire is_diagonal;
   wire is_on;
-  wire [7:0] memory [0:7];
+  wire [7:0] memory [0:CHARLIE_ROWS-1];
   reg [7:0] uio_out_reg;
   reg [7:0] uio_oe_reg;
   
-  assign uio_out=uio_out_reg;//8'h5C;//
+  assign uio_out=uio_out_reg;
   assign uio_oe=uio_oe_reg;
-  
-  /*assign memory[0] = memory_frame_buffer[7:0];
-  assign memory[1] = memory_frame_buffer[15:8];
-  assign memory[2] = memory_frame_buffer[23:16];
-  assign memory[3] = memory_frame_buffer[31:24];
-  assign memory[4] = memory_frame_buffer[39:32];
-  assign memory[5] = memory_frame_buffer[47:40];
-  assign memory[6] = memory_frame_buffer[55:48];
-  assign memory[7] = memory_frame_buffer[63:56];*/
   
   genvar i;
 	generate
 		for (i = 0; i < CHARLIE_ROWS; i = i + 1) begin
-			assign memory[i] = memory_frame_buffer[8*i + 7 -: 8];
+			assign memory[i][7:0] = memory_frame_buffer[8*i + 7 -: 8];
 		end
 	endgenerate
   
@@ -46,7 +40,7 @@ wire [2:0] row_index;
   assign row_index=charlie_index[5:3];
   
   //assign is_diagonal = row_index == col_index;//if on diagonal, do nothing
-  assign is_on=memory[row_index][col_index];//fetch state of this LED
+  assign is_on=memory[row_index+8*frame_index][col_index^{is_mirror,is_mirror,is_mirror}]&(frame_index!=2'b11);//fetch state of this LED
   
   always @(posedge clk)
   begin
