@@ -74,14 +74,87 @@ async def test_project(dut):
         # await asic_sleep(dut,1)#await ClockCycles(dut.clk, 1)
         # #print(format(int(dut.uo_out.value), '08b'))
         
-    #await test_spi(dut)
-    
-    #await test_echo(dut)#echo inputs direct to outputs
-    
+        
+    await test_spi(dut)
+    await test_echo(dut)#echo inputs direct to outputs
     await test_decode(dut)#lookup table
+    await test_sig_gen(dut)
         
     # Keep testing the module by changing the input values, waiting for
     # one or more clock cycles, and asserting the expected output values.
+
+async def test_sig_gen(dut):
+    await do_reset(dut)
+    dut._log.info("test_sig_gen")
+    set_io(dut,"trigger",0)
+    await exchange_spi_byte(dut,16,0b00100000,1)#clk div to run at max speed
+    #await exchange_spi_byte(dut,16,0b00000001,1)#clk div = sys_clk /4
+    await exchange_spi_byte(dut,19,0b10000010,1)#set mux output to the clock and sig gen signals, set screen to show timestamps
+    await exchange_spi_byte(dut,18,3,1)#sig gen sleep for 3 clk_div ticks (sys_clk/2 by default)
+    await exchange_spi_byte(dut,17,3,1)#bits of data (+1 sleep period)
+    await exchange_spi_byte(dut,0,0xAA,1)#string of 1/0s the show
+    await exchange_spi_byte(dut,1,0xCC,1)
+    await exchange_spi_byte(dut,2,0x55,1)
+    #await exchange_spi_byte(dut,20,0b00111111,1)#trigger either edge, recor time stamp, loop
+    #await exchange_spi_byte(dut,20,0b00111101,1)#single snapshot
+    await exchange_spi_byte(dut,20,0b00111110,1)#single snapshot
+    print_in_out_state(dut,True)
+    for iter in range(8):
+        print_in_out_state(dut)
+        await asic_sleep(dut,1)
+    set_io(dut,"trigger",1)
+    for iter in range(30):
+        print_in_out_state(dut)
+        await asic_sleep(dut,1)
+    set_io(dut,"trigger",0)
+    for iter in range(30):
+        print_in_out_state(dut)
+        await asic_sleep(dut,1)
+    
+    rising_timestamp=await get_timestamp(dut,False)
+    falling_timestamp=await get_timestamp(dut,True)
+    assert falling_timestamp>rising_timestamp
+        
+    set_io(dut,"trigger",1)
+    for iter in range(20):
+        print_in_out_state(dut)
+        await asic_sleep(dut,1)
+        
+    rising_timestamp=await get_timestamp(dut,False)
+    assert rising_timestamp>falling_timestamp
+    
+    triggers_seen=await exchange_spi_byte(dut,21,0,0)#single snapshot
+    assert triggers_seen==3
+    
+    await exchange_spi_byte(dut,0,0x5E,1)
+    await exchange_spi_byte(dut,1,0x55,1)
+    await exchange_spi_byte(dut,2,0x55,1)
+    await exchange_spi_byte(dut,3,0x55,1)
+        
+    #note: this charlie clears the mega mux output
+    await set_print_charlie(dut,1,0)
+    await set_print_charlie(dut,1,1)
+    await exchange_spi_byte(dut,19,0b10000010,1)#set mux output to the clock and sig gen signals, set screen to show timestamps
+    await exchange_spi_byte(dut,18,200,1)#sig gen sleep for 3 clk_div ticks (sys_clk/2 by default)
+    await exchange_spi_byte(dut,17,16*8-1,1)#bits of data (+1 sleep period)
+    
+    set_io(dut,"trigger",0)
+    for iter in range(16*8+230):
+        print_in_out_state(dut)
+        await asic_sleep(dut,1)
+        
+    #test capture snapshot timestamp
+    #test WS2812
+    #test UART
+    #test PWM
+    
+async def get_timestamp(dut,is_falling):
+    out=0
+    for iter in range(4):
+        addr=8+is_falling*4+iter
+        val=await exchange_spi_byte(dut,addr,0,0)
+        out|=val<<(iter*8)#addr 8 is LSB, 11 is MSB
+    return out
 
 async def test_spi(dut):
     await do_reset(dut)
@@ -119,7 +192,7 @@ async def do_reset(dut):
     set_io(dut,"spi_clk",0)#MODE 0
 
 async def test_decode(dut):
-    do_reset(dut)
+    await do_reset(dut)
     for iter in range(16):#fill frame buffer
         value=((15-iter)<<4)|iter
         await exchange_spi_byte(dut,iter,value,1)
@@ -150,7 +223,7 @@ async def test_decode(dut):
     
 
 async def test_echo(dut):
-    do_reset(dut)
+    await do_reset(dut)
     print_in_out_state(dut,True)
     for iter in range(16):
         asic_3=(iter>>3)&1
@@ -175,7 +248,7 @@ async def test_echo(dut):
         in_3=(rep>>2)&1
         in_2=(rep>>1)&1
         in_1=(rep>>0)&1
-        set_io(dut,"is_simulate",in_3);
+        set_io(dut,"trigger",in_3);
         set_io(dut,"mosi",in_2);
         set_io(dut,"spi_clk",in_1);
         await asic_sleep(dut,1)
@@ -194,17 +267,19 @@ def print_in_out_state(dut,is_header=False):
     line="|"
     for is_out in [False,True]:
         value=dut.uo_out.value if is_out else dut.ui_in.value
-        index_list=list(range(8))
+        index_list=list(range(8))#MSbit on left, LSbit on right
         index_list.reverse()
         for idx in index_list:
             if(get_bit(value,idx)): line+="."
             else: line+=" "
             if(idx%2==0): line+="|"
+    #line+=str(get_io(dut,"asic_out_0"))
     dut._log.info(line)
 
 #index 0 is MSbit, 7 is LSbit
 def get_bit(value,index):
-    return (value >> (7-index)) & 1
+    #return (value >> (7-index)) & 1
+    return (value >> index) & 1
 
 async def set_print_charlie(dut,frame_index,is_mirror):
     await exchange_spi_byte(dut,19,frame_index|(is_mirror<<2),1)
@@ -265,7 +340,9 @@ async def exchange_spi_byte(dut,address,mosi_value,is_write):
     else: address=address&0x7F;#read MISO
     for byte_index in range(2):
         is_address=byte_index==0
-        for iter in range(8):
+        index_order=list(range(8))
+        index_order.reverse()
+        for iter in index_order:#send MSbit first
             mosi_bit=get_bit(address if is_address else mosi_value,iter)
             #dut._log.info("mosi_bit: "+str(mosi_bit))
             set_io(dut,"mosi",mosi_bit)#write new value on falling edge
@@ -300,11 +377,11 @@ def set_io(dut,name,value):
         case "cs":          index=0
         case "spi_clk":     index=1
         case "mosi":        index=2
-        case "is_simulate": index=3
-        case "asic_in_0":  index=4
-        case "asic_in_1":  index=5
-        case "asic_in_2":  index=6
-        case "asic_in_3":  index=7
+        case "trigger":     index=3
+        case "asic_in_0":   index=4
+        case "asic_in_1":   index=5
+        case "asic_in_2":   index=6
+        case "asic_in_3":   index=7
         case _: raise ValueError("DUT IO name not found: "+name)
     #dut._log.info("set_io A: "+format(int(dut.ui_in.value), '08b')+" "+str(value)+" "+str(index)+" "+name)
     #if(value): dut.ui_in.value= dut.ui_in.value | (1<<index) #FYI, |= and &= write erroneous values

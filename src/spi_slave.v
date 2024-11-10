@@ -76,7 +76,7 @@ module spi_slave #(
 					end else begin//have the address in-hand, now do the data byte handling
 						if (is_mosi) begin  // MOSI write operation (device reads master-to-slave on clk rising)
 							if(bit_cnt==7) begin
-								//rw_data[reg_address*8+7-:8] <= next_shift_reg;
+								//rw_data[reg_address*8+7-:8] <= next_shift_reg; //moved to priority write module
 							end
 							reg_data <= next_shift_reg;
 							bit_cnt <= bit_cnt + 1;

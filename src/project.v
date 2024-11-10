@@ -34,7 +34,7 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
   wire mosi=ui_in[2];
   wire sclk=ui_in[1];
   wire cs=ui_in[0];
-  wire is_trigger=ui_in[3];
+  wire trigger=ui_in[3];
   
   //register map
   wire is_counter_reset=rw_data[16][7];
@@ -44,27 +44,32 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
   wire [1:0] mega_mux_index=rw_data[19][7:6];
   wire [1:0] bi_frame_index=rw_data[19][1:0];
   wire is_bi_mirror=rw_data[19][2];
-  wire [3:0] sig_gen_out=4'b0;//TODO
-  wire is_analyzer_lock=1'b0;//TODO
-  wire is_analyzer_run=1'b0;//TODO
-  wire is_sig_gen_run=1'b0;//TODO
-  
+  wire [1:0] sig_gen_loop_mode=rw_data[20][1:0];
+ wire is_trigger_on_rising_edge=rw_data[20][2];
+ wire is_trigger_on_falling_edge=rw_data[20][3];
+ wire is_save_rising_timestamp=rw_data[20][4];
+ wire is_save_falling_timestamp=rw_data[20][5];
+ 
+  wire [3:0] sig_gen_out;
   wire [4:0] spi_address;
   wire [7:0] spi_data;
   wire is_spi_write;
   wire [RW_REG_COUNT-1:0] spi_write_flag=1'b1<<spi_address;
+  wire [RW_REG_COUNT*8-1:0] sig_gen_data;//updates to the register map configuration in response to trigger events
+  wire [RW_REG_COUNT-1:0] sig_gen_flag;//flag to indicate new data is available
+  wire is_sig_gen_run;
   
       genvar i;  // Generate variable for the loop
     generate
         for (i = 0; i < RW_REG_COUNT; i = i + 1) begin// : module_instances
             // Instantiate the module here
-            priority_write #(1) this_priority_write (
+            priority_write #(2) this_priority_write (
 				.clk(clk),
 				.rst_n(rst_n),
-                .flags({spi_write_flag[i]&is_spi_write}),//flag from each module requesting a write
-                .data_bits({spi_data}),//byte from the module requesting to be written
-                .data_in(rw_data[i]),//old value from register
-                .data_out(rw_data[i])//new value to register
+                .flags({spi_write_flag[i]&is_spi_write,sig_gen_flag[i]}),//flag from each module requesting a write
+                .data_bits({spi_data,sig_gen_data[i*8+:8]}),//byte from the module requesting to be written
+                .data_in(rw_data[i]),//old value of the register
+                .data_out(rw_data[i])//new value of the register
             );
         end
     endgenerate
@@ -140,18 +145,36 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
 	.is_spi_write(is_spi_write)
 );
 
+
+signal_generator #(
+    RW_REG_COUNT  // Number of input flags and data sets
+) signal_generator_0 (
+	.clk(clk),
+	.trigger(trigger),
+	.clk_div(counter[clk_tap_index]),
+	.is_div_bypass(is_clk_div_bypass),//set to 1 to run sig gen at max speed (at speed of sys clock)
+	.counter(counter),//for saving the timestamp of trigger events
+	.rst_n(rst_n),
+	.loop_mode(sig_gen_loop_mode),//0 is off, 1 is single, 2 is multi (once per trigger), 3 is loop
+	.is_trigger_on_rising_edge(is_trigger_on_rising_edge),
+	.is_trigger_on_falling_edge(is_trigger_on_falling_edge),
+	.is_save_rising_timestamp(is_save_rising_timestamp),
+	.is_save_falling_timestamp(is_save_falling_timestamp),
+	.was_config(rw_flat),
+	.is_config(sig_gen_data),//data reqeusted to be written to registers
+	.is_update_flag(sig_gen_flag),//flag to indicate data is ready to be written
+	.sig_gen_out(sig_gen_out),
+	.is_running(is_sig_gen_run)
+);
+
 	wire [4*7-1:0] mega_mux={
-							is_clk_div_bypass?clk:counter[clk_tap_index],counter[clk_tap_index+8],sig_gen_out,1'b0,
-							is_clk_div_bypass?clk:counter[clk_tap_index],counter[clk_tap_index+8],sig_gen_out[0],1'b1,is_analyzer_lock,is_analyzer_run,is_sig_gen_run,//2 siggen
+							rw_data[{1'b0,ui_in[7:4]}][6:0]&{6{sig_gen_out[0]}},//dimmable display
+							is_clk_div_bypass?clk:counter[clk_tap_index],counter[clk_tap_index+8],sig_gen_out[3:0],is_sig_gen_run,//2 siggen
 							rw_data[{1'b0,ui_in[7:4]}][6:0],//1 decode
-							ui_in[7:4],is_trigger,mosi,sclk//0 echo
+							ui_in[7:4],trigger,mosi,sclk//0 echo
 							};
 	assign uo_out[6:0]=mega_mux[(mega_mux_index*7)+:7];//8th bit is reserved for miso
-	//assign rw_flat=1;
-  //assign uo_out[0]=1'b1;//TODO
-  //assign uo_out[5:1] =0;//TODO
-  //assign uo_out[6]=ui_in[7];//counter[0];
-  //assign uo_out[0]=^counter;//TODO //python[0]
-  wire _unused = &{ena, clk, rst_n, 1'b0,uio_in,ui_in,rw_flat,ro_flat};//TODO
+	
+  wire _unused = &{ena};//TODO
 
 endmodule
