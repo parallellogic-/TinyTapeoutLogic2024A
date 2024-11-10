@@ -20,7 +20,7 @@ module spi_slave #(
     reg [2:0] bit_cnt;                         // Bit counter for SPI byte
     reg is_mosi;                               // Read mosi (0) or Write miso(1) mode
 	wire spi_clk_rising_edge,spi_clk_falling_edge; //SPI Mode 0 state machine
-	reg [7:0] reg_address;//address being read/written to
+	reg [4:0] reg_address;//address being read/written to
 	reg [7:0] reg_data;//data being written to that address or being read out
 
 	reg spi_clk_prev;//for spi_clk_rising_edge,spi_clk_falling_edg state machine
@@ -44,7 +44,7 @@ module spi_slave #(
 			spi_miso <= 1'b0;
 			is_mosi <= 1'b0;
 			spi_clk_prev<=1'b0;
-			reg_address<=8'b0;
+			reg_address<=5'b0;
 			reg_data<=8'b0;
 			//for (int i = 0; i < RW_REG_COUNT; i = i + 1) begin
 			//	rw_data[8*i +: 8] <= 8'h00; // Reset to const on boot
@@ -58,7 +58,7 @@ module spi_slave #(
 							is_mosi <= next_shift_reg[7];  // MSB determines read/write
 							is_data_phase <= 1'b1;
 							if (next_shift_reg[7]) begin  //mosi write mode
-								reg_address <= {1'b0,next_shift_reg[6:0]};//save the address for later so it's clear where to save the data byte to in the register map
+								reg_address <= next_shift_reg[4:0];//{1'b0,next_shift_reg[6:0]};//save the address for later so it's clear where to save the data byte to in the register map
 							end else begin //miso read mode
 								if (next_shift_reg[6:0] < RW_REG_COUNT) begin;
 									reg_data <= rw_data[next_shift_reg[6:0]*8+7-:8];

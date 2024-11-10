@@ -89,7 +89,8 @@ async def test_sig_gen(dut):
     set_io(dut,"trigger",0)
     await exchange_spi_byte(dut,16,0b00100000,1)#clk div to run at max speed
     #await exchange_spi_byte(dut,16,0b00000001,1)#clk div = sys_clk /4
-    await exchange_spi_byte(dut,19,0b10000010,1)#set mux output to the clock and sig gen signals, set screen to show timestamps
+    await exchange_spi_byte(dut,19,0b00000010,1)#set mux output to the clock signals, set screen to show timestamps
+    await exchange_spi_byte(dut,22,0b00000010,1)#set mux output to the sig gen signals
     await exchange_spi_byte(dut,18,3,1)#sig gen sleep for 3 clk_div ticks (sys_clk/2 by default)
     await exchange_spi_byte(dut,17,3,1)#bits of data (+1 sleep period)
     await exchange_spi_byte(dut,0,0xAA,1)#string of 1/0s the show
@@ -201,7 +202,7 @@ async def test_decode(dut):
     await set_print_charlie(dut,0,1)
     await set_print_charlie(dut,1,0)
     await set_print_charlie(dut,1,1)
-    await exchange_spi_byte(dut,19,1<<6,1)#set to decode mode
+    await exchange_spi_byte(dut,22,1,1)#set to decode mode
     print_in_out_state(dut,True)
     list_order=list(range(16))
     #list_order.reverse()

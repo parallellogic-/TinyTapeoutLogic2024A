@@ -48,8 +48,8 @@ wire [7:0] rising_trigger_cleared=was_config[8*SIG_GEN_CONFIG_REGISTER +: 8]&8'b
 wire [7:0] falling_trigger_cleared=was_config[8*SIG_GEN_CONFIG_REGISTER +: 8]&8'b11110111;//clear only the falling trigger flag
 wire [7:0] trigger_register_cleared;
 wire is_triggered=(is_trigger_rising_edge|is_trigger_falling_edge);
-wire [6:0] get_pattern_length=was_config[SIG_GEN_LENGTH_REGISTER*8+:7];
-wire [6:0] get_pattern_length_decrement=was_config[SIG_GEN_LENGTH_REGISTER*8+:7]-1;
+wire [7:0] get_pattern_length={1'b0,was_config[SIG_GEN_LENGTH_REGISTER*8+:7]};//max 128 bits
+wire [7:0] get_pattern_length_decrement=get_pattern_length-1;
 wire [7:0] get_pattern_sleep_decrement=was_config[SIG_GEN_SLEEP_REGISTER*8+:8]-1;
 
 assign trigger_register_cleared=(loop_mode==2'b1)?(is_trigger_on_any_edge?
@@ -60,19 +60,19 @@ assign trigger_register_cleared=(loop_mode==2'b1)?(is_trigger_on_any_edge?
   genvar iter;
 	generate//create data and flags for priority write structure
 		for (iter = 0; iter < RW_REG_COUNT; iter = iter + 1) begin
-			if(iter>=SIG_GEN_RISING_TIMESTAMP_REGISTER & iter<(SIG_GEN_RISING_TIMESTAMP_REGISTER+4)) begin//store rising edge timestamp
+			if(iter>=SIG_GEN_RISING_TIMESTAMP_REGISTER & iter<(SIG_GEN_RISING_TIMESTAMP_REGISTER+4)) begin : gen_rising_timestamp//store rising edge timestamp
 				assign is_config[8*iter +: 8] = counter[(iter-SIG_GEN_RISING_TIMESTAMP_REGISTER)*8+:8];
 				assign is_update_flag[iter]=is_trigger_rising_edge&is_save_rising_timestamp;
-			end else if(iter>=SIG_GEN_FALLING_TIMESTAMP_REGISTER & iter<(SIG_GEN_FALLING_TIMESTAMP_REGISTER+4)) begin//store falling edge timestamp
+			end else if(iter>=SIG_GEN_FALLING_TIMESTAMP_REGISTER & iter<(SIG_GEN_FALLING_TIMESTAMP_REGISTER+4)) begin : gen_falling_timestamp//store falling edge timestamp
 				assign is_config[8*iter +: 8] = counter[(iter-SIG_GEN_FALLING_TIMESTAMP_REGISTER)*8+:8];
 				assign is_update_flag[iter]=is_trigger_falling_edge&is_save_falling_timestamp;
-			end else if(iter==SIG_GEN_CONFIG_REGISTER) begin//clear the single_snapshot (and associated rising/falling edge) flags
+			end else if(iter==SIG_GEN_CONFIG_REGISTER) begin : gen_clear_single//clear the single_snapshot (and associated rising/falling edge) flags
 				assign is_config[8*iter +: 8] = trigger_register_cleared;
 				assign is_update_flag[iter]=is_triggered;//clear the single snapshot when machine was idle and a trigger_edge happens
-			end else if(iter==SIG_GEN_TRIGGER_COUNT_REGISTER) begin
+			end else if(iter==SIG_GEN_TRIGGER_COUNT_REGISTER) begin : gen_count_triggers
 				assign is_config[8*iter +: 8] = was_config[8*iter +: 8]+1;
 				assign is_update_flag[iter]=is_triggered;
-			end else begin
+			end else begin : gen_leave_other_registers_unchanged
 				assign is_config[8*iter +: 8] = was_config[8*iter +: 8];
 				assign is_update_flag[iter]=1'b0;//never update the other registers
 			end
@@ -84,14 +84,14 @@ assign trigger_register_cleared=(loop_mode==2'b1)?(is_trigger_on_any_edge?
 			prev_clk_div<=1'b0;
 			prev_trigger<=1'b0;
 			state_machine<=2'b0;
-			sig_gen_out<=3'b0;
+			sig_gen_out<=4'b0;
 			index_reg<=8'b0;
 		end else begin
 			prev_clk_div <= clk_div;
 			prev_trigger <= trigger;
 			if(is_triggered) begin
 				state_machine<=1;//go to bit mode (PRECON: LEN>0 of bits to write out)
-				index_reg<={1'b0,get_pattern_length_decrement};//first bit written out is at the highest index
+				index_reg<=get_pattern_length_decrement;//first bit written out is at the highest index
 				sig_gen_out[0] <= was_config[get_pattern_length];
 				//if(is_save_timestamp) begin
 					//save clock to bytes 8-11 (rising), DONE in combinational logic
@@ -117,7 +117,7 @@ assign trigger_register_cleared=(loop_mode==2'b1)?(is_trigger_on_any_edge?
 						//end
 						if(is_loop) begin
 							state_machine<=1;//immediately continue generating pattern
-							index_reg<={1'b0,get_pattern_length_decrement};
+							index_reg<=get_pattern_length_decrement;
 							sig_gen_out[0] <= was_config[get_pattern_length];
 						end
 					end

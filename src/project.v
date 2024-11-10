@@ -30,18 +30,27 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
   wire [RW_REG_COUNT*8-1:0] rw_flat;
   wire [RO_REG_COUNT*8-1:0] ro_flat;
   
-  //inputs
-  wire mosi=ui_in[2];
-  wire sclk=ui_in[1];
-  wire cs=ui_in[0];
-  wire trigger=ui_in[3];
+  //IO
+  wire mosi=ui_in[2];//^is_input_inverted[2];
+  wire sclk=ui_in[1];//^is_input_inverted[1];
+  wire cs=ui_in[0];//^is_input_inverted[0];
+  wire trigger=ui_in[3]^is_input_inverted[3];
+  wire [3:0] asic_in=ui_in[7:4]^is_input_inverted[7:4];
+  wire [6:0] asic_out;
+  wire miso;
+  wire [7:0] bi_out;
+  wire [7:0] bi_en;
+  assign uo_out[6:0]=asic_out^{7{is_mux_output_inv}};
+  assign uo_out[7]=miso;//^is_miso_inverted;
+  assign uio_out=bi_out^{8{is_bi_output_inv}};
+  assign uio_oe=bi_en^{8{is_bi_en_inv}};
   
   //register map
   wire is_counter_reset=rw_data[16][7];
   wire is_lfsr=rw_data[16][6];
   wire is_clk_div_bypass=rw_data[16][5];
   wire [4:0] clk_tap_index=rw_data[16][4:0];
-  wire [1:0] mega_mux_index=rw_data[19][7:6];
+  wire [1:0] mega_mux_index=rw_data[22][1:0];
   wire [1:0] bi_frame_index=rw_data[19][1:0];
   wire is_bi_mirror=rw_data[19][2];
   wire [1:0] sig_gen_loop_mode=rw_data[20][1:0];
@@ -49,6 +58,10 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
  wire is_trigger_on_falling_edge=rw_data[20][3];
  wire is_save_rising_timestamp=rw_data[20][4];
  wire is_save_falling_timestamp=rw_data[20][5];
+ wire [7:0] is_input_inverted=rw_data[22]; 
+ wire is_mux_output_inv=rw_data[22][2];
+ wire is_bi_output_inv=rw_data[19][4];
+ wire is_bi_en_inv=rw_data[19][3];
  
   wire [3:0] sig_gen_out;
   wire [4:0] spi_address;
@@ -61,7 +74,7 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
   
       genvar i;  // Generate variable for the loop
     generate
-        for (i = 0; i < RW_REG_COUNT; i = i + 1) begin// : module_instances
+        for (i = 0; i < RW_REG_COUNT; i = i + 1) begin : gen_priority_write_blocks// : module_instances
             // Instantiate the module here
             priority_write #(2) this_priority_write (
 				.clk(clk),
@@ -90,11 +103,11 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
   
   //genvar i;
 	generate
-		for (i = 0; i < RW_REG_COUNT; i = i + 1) begin
+		for (i = 0; i < RW_REG_COUNT; i = i + 1) begin : gen_flatten_rw
 			//assign rw_data[i] = rw_flat[8*i + 7 -: 8];
 			assign rw_flat[8*i + 7 -: 8] = rw_data[i];
 		end
-		for (i = 0; i < RO_REG_COUNT; i = i + 1) begin
+		for (i = 0; i < RO_REG_COUNT; i = i + 1) begin : gen_flatten_ro
 			assign ro_flat[8*i + 7 -: 8] = ro_data[i];
 		end
 	endgenerate
@@ -124,8 +137,8 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
   .frame_index(bi_frame_index),
   .is_mirror(is_bi_mirror),
     .memory_frame_buffer(memory_frame_buffer),
-    .uio_out(uio_out),  // IOs: Output path
-    .uio_oe(uio_oe)
+    .uio_out(bi_out),  // IOs: Output path
+    .uio_oe(bi_en)
   );
   
   spi_slave #(
@@ -137,7 +150,7 @@ module tt_um_wokwi_413386991502909441 (//tt_um_parallellogic_top
     .spi_cs(cs),                   // SPI chip select (active low)
     .spi_clk(sclk),                  // SPI clock
     .spi_mosi(mosi),                 // Master-Out Slave-In (data from master)
-    .spi_miso(uo_out[7]),                // Master-In Slave-Out (data to master)
+    .spi_miso(miso),                // Master-In Slave-Out (data to master)
 	.rw_data(rw_flat),
     .ro_data(ro_flat), // Data for read-only registers
 	.spi_address(spi_address),				//address of where to write data to
@@ -168,13 +181,14 @@ signal_generator #(
 );
 
 	wire [4*7-1:0] mega_mux={
-							rw_data[{1'b0,ui_in[7:4]}][6:0]&{6{sig_gen_out[0]}},//dimmable display
+							rw_data[{1'b0,asic_in}][6:0]&{7{sig_gen_out[0]}},//dimmable display
 							is_clk_div_bypass?clk:counter[clk_tap_index],counter[clk_tap_index+8],sig_gen_out[3:0],is_sig_gen_run,//2 siggen
-							rw_data[{1'b0,ui_in[7:4]}][6:0],//1 decode
-							ui_in[7:4],trigger,mosi,sclk//0 echo
+							rw_data[{1'b0,asic_in}][6:0],//1 decode
+							asic_in,trigger,mosi,sclk//0 echo
 							};
-	assign uo_out[6:0]=mega_mux[(mega_mux_index*7)+:7];//8th bit is reserved for miso
-	
-  wire _unused = &{ena};//TODO
+	assign asic_out=mega_mux[(mega_mux_index*7)+:7];//8th bit is reserved for miso
+	//wire [2:0] _unused2=is_input_inverted[2:0];
+ //wire _is_miso_inverted=rw_data[17][7];
+  wire _unused = &{ena,uio_in,is_input_inverted[2:0]};//TODO
 
 endmodule
